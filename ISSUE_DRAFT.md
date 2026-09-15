@@ -1,11 +1,11 @@
-# HLS live-to-VOD transition: forward DVR seek snaps back while video.duration remains Infinity (4.15.16)
+# HLS live-to-VOD transition: forward DVR seek snaps back while video.duration remains Infinity (4.15.16 and 5.2.10)
 
 Draft only. Use the upstream bug-report form and fill in all required confirmations yourself.
 
 ## Versions and environment
 
 - Shaka 4.15.16: reproduced with the unmodified npm release.
-- Shaka 5.2.10: comparison results in VALIDATION.md; this EVENT fixture has a finite duration from initial load in that version.
+- Shaka 5.2.10: reproduced with the unmodified npm release and the same growing live fixture.
 - Latest main: not tested.
 - Custom minimal app, macOS 26.5.2, in-app Chromium reporting Chrome/152.0.0.0.
 - No DRM / FairPlay: not applicable.
@@ -17,13 +17,13 @@ Repository: https://github.com/aeong98/shaka-hls-live-to-vod-end-duration-bug
 Hosted reproduction page: [fill after Render deployment]
 
 1. Open the reproduction page using the default Shaka 4.15.16 version.
-2. Click Start / reset. It loads a 180-second synthetic HLS EVENT playlist at 30s and pauses with about 10s of buffer ahead.
-3. Click End broadcast. The same session's playlist gains EXT-X-ENDLIST, without changing or removing segments.
+2. Click Start / reset. It joins a synthetic live HLS stream with 150s of DVR history at 30s and pauses with about 10s of buffer ahead. The served playlist has no EXT-X-PLAYLIST-TYPE tag.
+3. Observe the playlist grow by one 2s segment every 2s. Click End broadcast before the fixture automatically ends after 30s of wall-clock time. The same session freezes its published segment count and adds EXT-X-ENDLIST.
 4. Wait for VOD transition detected. The player is not reloaded.
 5. Click Seek to 120s, which is inside player.seekRange() but outside video.buffered.
 6. Inspect the event log or click Copy diagnostics.
 
-The page exposes a session-specific playable manifest URI. Sessions expire after one hour or a server restart; start a new session if needed. The fixture exposes all generated segments immediately and isolates the ENDLIST transition, rather than simulating real-time segment growth.
+The page exposes a session-specific playable manifest URI. Sessions expire after one hour or a server restart; start a new session if needed. Only the currently published segments are referenced in each playlist. The final length is determined by the end-broadcast time (or the 180s fixture limit). Media bytes are synthetic and pre-generated.
 
 Configuration:
 
@@ -44,13 +44,13 @@ Seeking to an available, unbuffered target inside the final presentation range s
 
 ## Actual
 
-With 4.15.16, after ENDLIST is processed:
+With both 4.15.16 and 5.2.10, after ENDLIST is processed:
 
 - player.isLive() and player.isInProgress() are false.
-- player.seekRange() is 0–180 seconds.
+- Both broadcasts ended at 168s, and player.seekRange() was 18–168s.
 - video.duration remains Infinity.
-- video.seekable ends at 41.989333s, matching the buffered end.
-- Requesting video.currentTime = 120 is immediately clamped to 41.989333s.
+- video.seekable ends at 41.989333s (4.15.16) or 40.012667s (5.2.10), matching the respective buffered ends.
+- Requesting video.currentTime = 120 is clamped to 41.989333s (4.15.16) or 40.012667s (5.2.10).
 
 See VALIDATION.md for the observed comparison and environment limits.
 
@@ -64,7 +64,7 @@ Related upstream context:
 - https://github.com/shaka-project/shaka-player/pull/9054
 - https://github.com/shaka-project/shaka-player/pull/9153
 
-Would keeping the final HLS seekable range while the internal duration is finite but the MSE duration remains Infinity be appropriate for the 4.15 branch?
+Would keeping the final HLS seekable range while the internal duration is finite but the MSE duration remains Infinity be an appropriate approach for the affected branches?
 
 ## Before submitting
 

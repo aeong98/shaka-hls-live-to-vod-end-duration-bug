@@ -1,6 +1,6 @@
 # Shaka HLS live-to-VOD forward seek reproduction
 
-A standalone reproduction of forward DVR seeks snapping back after an HLS broadcast ends in **unmodified Shaka Player 4.15.16**. Includes a **5.2.10** comparison page.
+A standalone reproduction of forward DVR seeks snapping back after an HLS broadcast ends in **unmodified Shaka Player 4.15.16 and 5.2.10**. Both versions reproduce the failure with the growing live fixture.
 
 All media is generated locally from FFmpeg test patterns and a sine wave. No production code, media, service URLs, credentials, DRM, analytics or account integration is included.
 
@@ -17,24 +17,28 @@ Open http://localhost:3000. To compare 5.2.10, use the link at the top of the pa
 
 ## Reproduce
 
-1. Click **Start / reset**. The player loads at 30 seconds and stays paused. Allow the buffer to settle (about 10 seconds ahead).
-2. Click **End broadcast**. The server appends `#EXT-X-ENDLIST` to that session's playlist, keeping all segments accessible.
-3. Wait for **VOD transition detected**. The page checks both `isLive()` and `isInProgress()` because EVENT classification differs between Shaka versions, then waits for the seekable-range timer.
+1. Click **Start / reset**. The player loads at 30 seconds and stays paused. Watch `broadcast.count` and `broadcast.duration` increase: one two-second segment is published every two seconds. The player buffers about 10 seconds ahead.
+2. Click **End broadcast**. The server freezes the currently published segment count and appends `#EXT-X-ENDLIST`. Already published segments remain accessible; future segments are not added.
+3. Wait for **VOD transition detected**. The page checks both `isLive()` and `isInProgress()` to cover both live and in-progress presentations, then waits for the seekable-range timer.
 4. Click **Seek to 120s**. Compare the requested target and actual position in the event log.
 5. Use **Copy diagnostics** to capture the browser user agent, configuration, session manifest URI and observations. If clipboard access is unavailable, copy the displayed environment and event log.
 
-Expected: seeking to 120s succeeds because it is inside the final 180-second presentation.
+Expected: seeking to 120s succeeds because it is inside the final presentation (whose length depends on when you click End broadcast).
 
 The test deliberately keeps the playhead away from the final segments. It does not reload the player, force duration, patch Shaka or override MediaSource APIs.
 
 ## Observed results
+
+The earlier all-segments-at-load EVENT experiment has been replaced. Its 5.2.10 result does not apply to this growing live playlist.
 
 See [VALIDATION.md](VALIDATION.md) for the tested environment and version comparison. These observations are specific to this synthetic fixture; they do not establish behavior on every browser or stream.
 
 ## Fixture and server
 
 - 180 seconds of 320×180 H.264 video with AAC sine-wave audio, in 90 two-second MPEG-TS segments.
-- An EVENT playlist exposes all pre-generated segments immediately. This isolates the ENDLIST transition; it does **not** simulate real-time segment growth.
+- The served live playlist omits `EXT-X-PLAYLIST-TYPE`. It starts with 75 segments (150 seconds of DVR history) and publishes one additional segment every two wall-clock seconds. The remaining segments are not referenced until publication.
+- End broadcast freezes the currently available segment list, making the final length depend on the ending time. If not ended manually, the fixture publishes its last segment and adds ENDLIST at 180 seconds of media (30 seconds after session creation).
+- Media bytes are pre-generated; playlist publication simulates a viewer joining an ongoing live broadcast. No real encoder is run during playback.
 - A random session ID isolates each visitor's end-broadcast action.
 - Sessions expire after one hour or server restart. Click Start to create a new one.
 - The in-memory session limit is 1,000. A single server instance is intended; no database is required.
@@ -53,7 +57,7 @@ npm run generate-media
 npm test
 ```
 
-The server test checks independent sessions, exact ENDLIST-only transition, all 90 segment responses, and rejection of non-public file paths. Browser playback is checked separately as described above.
+The server test checks independent sessions, timed playlist growth, frozen/idempotent manual ending, automatic ending at the fixture limit, all 90 segment responses, and rejection of non-public file paths. Browser playback is checked separately as described above.
 
 ## Render deployment
 

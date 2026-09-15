@@ -1,11 +1,11 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shaka HLS live → VOD reproduction</title><link rel="stylesheet" href="/style.css"></head>
-<body><main><p class="eyebrow">MINIMAL REPRODUCTION · SYNTHETIC MEDIA ONLY</p><h1>HLS live → VOD<br>Forward seek test</h1><p>End an HLS event while paused behind the live edge, then seek beyond the buffer.</p>
+<body><main><p class="eyebrow">MINIMAL REPRODUCTION · SYNTHETIC MEDIA ONLY</p><h1>HLS live → VOD<br>Forward seek test</h1><p>A growing HLS live playlist starts with 150s of DVR history and adds a 2s segment every 2s. End broadcast freezes the available segments.</p>
 <nav><a href="/">Shaka 4.15.16</a><a href="/?version=5">Shaka 5.2.10</a></nav>
-<ol><li>Start at 30s. Playback stays paused with a small buffer.</li><li>End broadcast. Wait for the VOD transition.</li><li>Seek to 120s. Compare requested time, actual time and seekable ranges.</li></ol>
+<ol><li>Start at 30s. Playback stays paused with a small buffer.</li><li>Watch the published duration grow, then End broadcast. Wait for the VOD transition.</li><li>Seek to 120s. Compare requested time, actual time and seekable ranges.</li></ol>
 <div class="actions"><button id="start">1. Start / reset</button><button id="end" disabled>2. End broadcast</button><button id="seek" disabled>3. Seek to 120s</button><button id="copy">Copy diagnostics</button></div>
 <p id="status" role="status">Loading player…</p><video id="video" controls muted playsinline></video>
 <label>Session manifest URI<input id="manifest" readonly placeholder="Click Start to create a session"></label>
 <h2>Environment</h2><pre id="environment"></pre><h2>Current state</h2><pre id="state"></pre><h2>Event log</h2><pre id="log"></pre>
-<p>Sessions expire after one hour or a server restart. No DRM, analytics, accounts or external media.</p>
+<p>The synthetic broadcast ends automatically at 180s (30s after Start) unless ended earlier. Sessions expire after one hour or a server restart. No DRM, analytics, accounts or external media.</p>
 </main><script src="/app.js"></script></body></html>

@@ -2,12 +2,12 @@
 const $ = (id) => document.getElementById(id);
 const video = $('video');
 const entries = [];
-let player, session, ending = false, transitioned = false, busy = false, generation = 0;
+let player, session, ending = false, transitioned = false, busy = false, generation = 0, broadcast, polling = false;
 const ranges = (r) => Array.from({ length: r.length }, (_, i) => [r.start(i), r.end(i)]);
 const stringify = (v) => JSON.stringify(v, (_, x) => typeof x === 'number' && !Number.isFinite(x) ? String(x) : x, 2);
 function snapshot() {
   return { version: window.shaka?.Player.version, isLive: player?.isLive(), isInProgress: player?.isInProgress(),
-    duration: video.duration, currentTime: video.currentTime,
+    broadcast, duration: video.duration, currentTime: video.currentTime,
     seekRange: player?.seekRange(), seekable: ranges(video.seekable), buffered: ranges(video.buffered),
     paused: video.paused, readyState: video.readyState };
 }
@@ -28,7 +28,7 @@ $('start').onclick = async () => {
   generation++;
   busy = true; $('start').disabled = true; $('end').disabled = true; $('seek').disabled = true;
   try {
-    ending = false; transitioned = false;
+    ending = false; transitioned = false; broadcast = undefined;
     if (player) { await player.destroy(); player = undefined; }
     entries.length = 0;
     session = await api('/api/sessions');
@@ -42,19 +42,24 @@ $('start').onclick = async () => {
     video.pause();
     record('loaded');
     $('environment').textContent = stringify({ userAgent: navigator.userAgent, configuration: player.getNonDefaultConfiguration() });
-    $('status').textContent = `Shaka ${shaka.Player.version}: live session ready. End broadcast when the buffer settles.`;
+    $('status').textContent = `Shaka ${shaka.Player.version}: live session ready. Watch the playlist grow, then end broadcast.`;
     $('end').disabled = false;
   } catch (e) { fail(e); } finally { busy = false; $('start').disabled = false; }
 };
 $('end').onclick = async () => {
   try {
-    await api(`/session/${session.id}/end`);
+    broadcast = await api(`/session/${session.id}/end`);
     ending = true; $('end').disabled = true;
     record('ENDLIST requested');
     $('status').textContent = 'Waiting for Shaka to process ENDLIST…';
   } catch (e) { fail(e); }
 };
 $('seek').onclick = () => {
+  const range = player.seekRange();
+  if (120 <= range.start || 120 >= range.end || ranges(video.buffered).some(([start, end]) => start <= 120 && end >= 120)) {
+    $('status').textContent = 'Test precondition not met: 120s must be inside the final range and outside the buffer. Start a new session.';
+    return;
+  }
   record('seek requested', { target: 120 });
   const currentGeneration = generation;
   video.currentTime = 120;
@@ -87,6 +92,22 @@ setInterval(() => {
     }, 2500);
   }
 }, 500);
+setInterval(async () => {
+  if (!session || busy || polling) return;
+  polling = true;
+  const currentGeneration = generation;
+  try {
+    const response = await fetch(`/session/${session.id}/state`);
+    if (!response.ok) throw new Error('Session expired; click Start');
+    const next = await response.json();
+    if (currentGeneration !== generation) return;
+    const changed = next.count !== broadcast?.count || next.ended !== broadcast?.ended;
+    broadcast = next;
+    if (changed) record('playlist publication');
+    if (next.ended) { ending = true; $('end').disabled = true; }
+  } catch (e) { if (currentGeneration === generation) fail(e); }
+  finally { polling = false; }
+}, 1000);
 $('start').disabled = true;
 const script = document.createElement('script');
 script.src = new URLSearchParams(location.search).get('version') === '5' ? '/shaka-5.js' : '/shaka-4.js';
