@@ -14,7 +14,7 @@ Draft only. Use the upstream bug-report form and fill in all required confirmati
 
 Repository: https://github.com/aeong98/shaka-hls-live-to-vod-end-duration-bug
 
-Hosted reproduction page: [fill after Render deployment]
+Hosted reproduction page: https://shaka-hls-live-to-vod-end-duration-bug.onrender.com/
 
 1. Open the reproduction page using the default Shaka 4.15.16 version.
 2. Click Start / reset. It joins a synthetic live HLS stream with 150s of DVR history at 30s and pauses with about 10s of buffer ahead. The served playlist has no EXT-X-PLAYLIST-TYPE tag.
@@ -68,7 +68,7 @@ Would keeping the final HLS seekable range while the internal duration is finite
 
 ## Before submitting
 
-- Add the deployed page URL and attach fresh copied diagnostics if needed.
+- Attach fresh copied diagnostics if needed. The free host may take 50 seconds or longer to wake from inactivity.
 - Confirm the FAQ/duplicate-search checkboxes after reviewing them.
 - State whether you intend to submit a PR.
 - Do not claim this reproduces on main or on every browser.

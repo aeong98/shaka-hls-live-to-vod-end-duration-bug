@@ -4,6 +4,12 @@ A standalone reproduction of forward DVR seeks snapping back after an HLS broadc
 
 All media is generated locally from FFmpeg test patterns and a sine wave. No production code, media, service URLs, credentials, DRM, analytics or account integration is included.
 
+## Hosted reproduction
+
+https://shaka-hls-live-to-vod-end-duration-bug.onrender.com/
+
+Hosted on a free Render web service. The initial request after inactivity can take 50 seconds or longer. Click Start to create a fresh session.
+
 ## Run locally
 
 Requires Node.js 22 or newer. FFmpeg is only needed to regenerate media; the generated 180-second stream is included.
@@ -60,6 +66,8 @@ npm test
 The server test checks independent sessions, timed playlist growth, frozen/idempotent manual ending, automatic ending at the fixture limit, all 90 segment responses, and rejection of non-public file paths. Browser playback is checked separately as described above.
 
 ## Render deployment
+
+The running service is connected via the public Git repository URL on branch `main`. For future updates, use Render → Manual Deploy → Deploy latest commit; Git-provider/Blueprint auto-deploy has not been configured for this service.
 
 [Deploy to Render](https://render.com/deploy?repo=https://github.com/aeong98/shaka-hls-live-to-vod-end-duration-bug)
 
