@@ -1,0 +1,1 @@
+{"name":"shaka-hls-live-to-vod-end-duration-bug","version":"1.0.0","private":true,"type":"module","scripts":{"start":"node server.js","test":"node --test","generate-media":"bash scripts/generate-media.sh"},"engines":{"node":">=22"},"dependencies":{"shaka-player":"4.15.16","shaka-player-latest":"npm:shaka-player@5.2.10"}}
